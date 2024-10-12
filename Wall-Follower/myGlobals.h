@@ -20,7 +20,7 @@ const int RDE = 9;     // Right Distance Echo
 const int FRSD = 12.5;
 const int LESD = 4;
 const int RISD = 4;
-const int moveSpeed = 200;
+const int moveSpeed = 160;
 
 // Boolean Info
 bool Emptyfront;
@@ -31,9 +31,3 @@ bool Emptyright;
 long Front_Dist;
 long Left_Dist;
 long Right_Dist;
-
-// Orientation
-MPU6050 mpu(Wire);
-unsigned long timer = 0;
-int inital_angle_x, inital_angle_y, inital_angle_z;
-int x, y, z, GpX, GpY, GpZ;
