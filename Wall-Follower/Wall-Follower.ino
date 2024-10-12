@@ -1,11 +1,15 @@
-#include <MPU6050_light.h>
-#include "Wire.h"
+#include <MPU6050.h>
+#include <Wire.h>
 #include "L293D-functions.h"
 #include "GetData.h"
 #include "myGlobals.h"
-#include "Orientation-Code.h"
+
+MPU6050 gyro;
+float currentAngle = 0.0;
+int16_t gyroX, gyroY, gyroZ;
 
 void setup() {
+  
   // L298D
   pinMode( LS , OUTPUT);
   pinMode( LF , OUTPUT);
@@ -29,16 +33,11 @@ void setup() {
   Wire.begin();
   Serial.begin(9600);
 
-  byte status = mpu.begin();
-  Serial.print(F("MPU6050 status: "));
-  Serial.println(status);
-  while (status != 0) {}
-  
-  mpu.update();
-  inital_angle_x = mpu.getAngleX();
-  inital_angle_y = mpu.getAngleY();
-  inital_angle_z = mpu.getAngleZ();
-  Serial.println("X " + String(inital_angle_x) + "  Y " + String(inital_angle_y) + "  Z " + String(inital_angle_z));
+  gyro.initialize();
+  if (!gyro.testConnection()) {
+    Serial.println("Gyro connection failed");
+    while (1);
+  }
 
   GetBools();
 }
@@ -50,28 +49,123 @@ void loop() {
   PrintSensors();
 
 }
+bool turn90Degrees() {
+
+  // Reset current angle
+  currentAngle = 0.0;
+
+  // Begin turn
+  rotateRight();
+
+  while (currentAngle < 105) {
+    gyro.getRotation(&gyroX, &gyroY, &gyroZ);
+    currentAngle += (gyroZ / 131.0) * 0.01; // Convert raw data to degrees, assuming loop runs every 10ms
+    Serial.println(currentAngle);
+  }
+
+  // Stop the car after completing the turn
+  stopCar();
+  return true;
+}
+bool turn180Degrees() {
+
+  // Reset current angle
+  currentAngle = 0.0;
+
+  // Begin turn
+  rotateRight();
+
+  while (currentAngle < 105 * 2) {
+    gyro.getRotation(&gyroX, &gyroY, &gyroZ);
+    currentAngle += (gyroZ / 131.0) * 0.01; // Convert raw data to degrees, assuming loop runs every 10ms
+    Serial.println(currentAngle);
+  }
+
+  // Stop the car after completing the turn
+  stopCar();
+  return true;
+}
+bool turn270Degrees() {
+
+  // Reset current angle
+  currentAngle = 0.0;
+
+  // Begin turn
+  rotateRight();
+
+  while (currentAngle < 105 * 3) {
+    gyro.getRotation(&gyroX, &gyroY, &gyroZ);
+    currentAngle += (gyroZ / 131.0) * 0.01; // Convert raw data to degrees, assuming loop runs every 10ms
+    Serial.println(currentAngle);
+  }
+
+  // Stop the car after completing the turn
+  stopCar();
+  return true;
+}
+
+void rotateRight() {
+  analogWrite(RS, 160);   // Set motor speed for motor A
+  digitalWrite(RF, HIGH);        // Set motor A forward
+  digitalWrite(RB, LOW);
+
+  analogWrite(LS, 160);   // Set motor speed for motor B
+  digitalWrite(LF, LOW);         // Set motor B backward
+  digitalWrite(LB, HIGH);
+}
+
+void stopCar() {
+  analogWrite(RS, 0);   // Stop motor A
+  digitalWrite(RF, LOW);
+  digitalWrite(RB, LOW);
+
+  analogWrite(LS, 0);   // Stop motor B
+  digitalWrite(LF, LOW);
+  digitalWrite(LB, LOW);
+}
 
 void FollowWall() {
-  if (Emptyleft) {
-    left(moveSpeed, moveSpeed);
-    GpZ = 0;
-    inital_angle_z = 0;
-    while(GpZ > -90) {
-      GetOrientation();
-      delay(10);
-    }
-  }
   if (!Emptyleft) {
     if (Emptyfront) {
+      delay(1000);
+      stopCar();
       forward(moveSpeed, moveSpeed);
-    } 
-    else {
+      stopCar();
+    }
+    else if (Emptyright) {
+      stopCar();
+      delay(1000);
       backward(moveSpeed, moveSpeed);
       delay(200);
-      while (!Emptyfront) {
-        GetBools();
-        right(moveSpeed, moveSpeed);
-        delay(10);
+      if (turn270Degrees()) {
+        delay(1000);
+      }
+      stopCar();
+    }
+    else {
+      stopCar();
+      delay(1000);
+      backward(moveSpeed, moveSpeed);
+      delay(200);
+      if (turn180Degrees()) {
+        delay(1000);
+      }
+      stopCar();
+    }
+  }
+  if (Emptyleft) {
+    if (Emptyfront) {
+      delay(1000);
+      stopCar();
+      forward(moveSpeed, moveSpeed);
+      stopCar();
+    }
+    else {
+      stopCar();
+      delay(1000);
+      left(moveSpeed, moveSpeed);
+      if (turn90Degrees()) {
+        delay(1000);
       }
     }
   }
